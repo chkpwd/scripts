@@ -70,7 +70,8 @@ def main():
     """Main function."""
     rma_status = get_rma_status(args.rma)
 
-    send_webhook(args.webhook, rma_status[0])
+    if "Awaiting" not in rma_status[0]:
+        send_webhook(args.webhook, rma_status[0])
 
 
 if __name__ == '__main__':
