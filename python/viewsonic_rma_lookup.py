@@ -1,5 +1,12 @@
+#! /usr/bin/env python3
+
 from html.parser import HTMLParser
+import argparse
 import requests
+
+arg = argparse.ArgumentParser()
+arg.add_argument("--rma", type=str, help="RMA number to look up")
+args = arg.parse_args()
 
 
 class ViewSonicParser(HTMLParser):
@@ -25,4 +32,4 @@ def get_rma_status(rma_number: str):
     return p
 
 
-get_rma_status(rma_number="R1186499-1")
+get_rma_status(args.rma)
