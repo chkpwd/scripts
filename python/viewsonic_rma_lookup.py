@@ -6,16 +6,30 @@ import requests
 
 arg = argparse.ArgumentParser()
 arg.add_argument("--rma", type=str, help="RMA number to look up")
+arg.add_argument("--webhook", type=str, help="Webhook URL to send message to")
 args = arg.parse_args()
 
 
 class ViewSonicParser(HTMLParser):
+
+    def __init__(self):
+        super().__init__()
+        self.data = []
+        self.capture = False
+
+    def handle_starttag(self, tag, attrs):
+        if tag == 'p':
+            for attr in attrs:
+                if attr == ('class', 'text-center'):
+                    self.capture = True
+
+    def handle_endtag(self, tag):
+        if tag == 'p':
+            self.capture = False
+
     def handle_data(self, data):
-        # Grab only the data we need
-        if "Status:" in data:
-            print(data)
-        elif "Last Status Date:" in data:
-            print(data)
+        if self.capture and 'Status:' in data:
+            self.data.append(data)
 
 
 def get_rma_status(rma_number: str):
@@ -23,13 +37,41 @@ def get_rma_status(rma_number: str):
 
     base_url = "https://www.viewsonic.com/rmalookup.php"
     url = f"{base_url}"
-    response = requests.post(url, data={"rma_no": rma_number}, timeout=10)
+    html = requests.post(url, data={"rma_no": rma_number}, timeout=10)
 
     p = ViewSonicParser()
-    p.feed(response.text)
-    p.close()
+    p.feed(html.text)
 
-    return p
+    return p.data
 
 
-get_rma_status(args.rma)
+def send_webhook(webhook_url: str, message: str):
+    """Send a simple message to a Discord webhook."""
+
+    url = webhook_url
+
+    embed = {
+        "description": f"RMA: {args.rma}\n {message}!",
+        "title": "ViewSonic RMA Status"
+    }
+
+    data = {
+        "content": "",
+        "username": "custom username",
+        "embeds": [
+            embed
+        ],
+    }
+
+    return requests.post(url=url, json=data, timeout=10)
+
+
+def main():
+    """Main function."""
+    rma_status = get_rma_status(args.rma)
+
+    send_webhook(args.webhook, rma_status[0])
+
+
+if __name__ == '__main__':
+    main()
