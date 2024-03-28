@@ -3,6 +3,7 @@
 from html.parser import HTMLParser
 import argparse
 import requests
+import datetime
 
 arg = argparse.ArgumentParser()
 arg.add_argument("--rma", type=str, help="RMA number to look up")
@@ -65,10 +66,12 @@ def send_webhook(webhook_url: str, message: str):
 
 def main():
     """Main function."""
+
+    current_time = datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
     rma_status = get_rma_status(args.rma)
 
     if "Awaiting Repair" in rma_status[0]:
-        print(f"RMA: {args.rma} - {rma_status[0]}")
+        print(current_time, f"- {rma_status[0]}")
     else:
         send_webhook(args.webhook, rma_status[0])
 
