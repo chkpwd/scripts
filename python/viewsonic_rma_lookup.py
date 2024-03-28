@@ -57,9 +57,7 @@ def send_webhook(webhook_url: str, message: str):
 
     data = {
         "username": "ViewSonic Bot",
-        "embeds": [
-            embed
-        ],
+        "embeds": [embed],
     }
 
     return requests.post(url=url, json=data, timeout=10)
@@ -69,7 +67,9 @@ def main():
     """Main function."""
     rma_status = get_rma_status(args.rma)
 
-    if "Awaiting" not in rma_status[0]:
+    if "Awaiting Repair" in rma_status[0]:
+        print(f"RMA: {args.rma} - {rma_status[0]}")
+    else:
         send_webhook(args.webhook, rma_status[0])
 
 
