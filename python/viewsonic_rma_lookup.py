@@ -70,7 +70,7 @@ def main():
     current_time = datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
     rma_status = get_rma_status(args.rma)
 
-    if "Awaiting Repair" in rma_status[0]:
+    if "Awaiting Fulfillment" in rma_status[0]:
         print(current_time, f"- {rma_status[0]}")
     else:
         send_webhook(args.webhook, rma_status[0])
