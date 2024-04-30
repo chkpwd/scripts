@@ -20,7 +20,7 @@ API_URL="https://api.github.com/users/$USERNAME/repos?per_page=100"
 mkdir -p "$TARGET_DIR"
 
 # Fetch the repo list from GitHub, sort them by size in descending order, and then clone each repo
-curl -s "$API_URL" | jq -r ".[] | select(.fork == false) | .size, .clone_url" | while read -r SIZE; read -r REPO; do
+curl -s "$API_URL" | jq -r ".[] | select(.fork == false) | .size, .ssh_url" | while read -r SIZE; read -r REPO; do
     REPO_NAME=$(echo "$REPO" | awk -F'/' '{print $NF}' | sed 's/.git//')
     if [ ! -d "$TARGET_DIR/$REPO_NAME" ]; then
         echo "Cloning $REPO_NAME of size $SIZE KB..."
@@ -31,4 +31,3 @@ curl -s "$API_URL" | jq -r ".[] | select(.fork == false) | .size, .clone_url" | 
 done | sort -rn
 
 echo "All repositories cloned to $TARGET_DIR."
-
