@@ -1,4 +1,4 @@
-#!/bin/bash
+#! /usr/bin/env bash
 
 # Ensure git and jq are installed
 if ! [ -x "$(command -v git)" ] || ! [ -x "$(command -v jq)" ]; then
