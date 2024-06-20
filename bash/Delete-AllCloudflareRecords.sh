@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # EMAIL=me@gmail.com
 # KEY=11111111111111111111111111
