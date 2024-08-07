@@ -7,7 +7,7 @@ function Remove-PreviousDellInstallsAndServices {
             Remove-Item -Path $UpdateServicePath -Force -Recurse -ErrorAction SilentlyContinue
         }
     }
-    $DCUPackageUinstallString = try { (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*' | Where-Object { $_.DisplayName -like "Dell Command | Update*" }).UninstallString } catch { $null }
+    $DCUPackageUinstallString = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*' | Where-Object { $_.DisplayName -like "Dell Command | Update*" }).UninstallString
 
     if ($DCUPackageUinstallString) {
         Write-Host "Uninstalling previous Dell Command | Update package..."
@@ -31,16 +31,28 @@ function Get-DCULatestURL {
                     Where-Object {$_.outerHTML -like "*Dell Command | Update Windows Universal Application*"} | 
                     Select-Object -ExpandProperty href -First 1
     $Output = (Invoke-WebRequest -Uri $URL -UseBasicParsing -Method Get -UserAgent $UserAgent -Headers $Headers).content.ToString()
-    return $Output | 
-                Select-String -Pattern '(?<Uri>https://dl.dell.com/FOLDER[^/]+/./(?<FileName>Dell-Command-Update-Windows-Universal-Application_[^_]+_WIN_(?<Version>[\d\.]+)_.{3}\.EXE))(?:.*>(?<Packagehash>[a-f0-9]{32})<)' -AllMatches | ForEach-Object { $_.Matches.Groups[1].Value }
+    $MatchedItems = $Output | 
+                Select-String -Pattern '(?<Uri>https://dl.dell.com/FOLDER[^/]+/./(?<FileName>Dell-Command-Update-Windows-Universal-Application_[^_]+_WIN_(?<Version>[\d\.]+)_.{3}\.EXE))(?:.*>(?<Packagehash>[a-f0-9]{64})<)' -AllMatches
+    $Uri = $MatchedItems.Matches | 
+                Select-Object -ExpandProperty Groups | 
+                Where-Object { $_.Name -eq 'Uri' } | 
+                Select-Object -ExpandProperty Value
+    $Packagehash = $MatchedItems.Matches |
+                Select-Object -ExpandProperty Groups |
+                Where-Object { $_.Name -eq 'Packagehash' } |
+                Select-Object -ExpandProperty Value
+    return $Uri, $Packagehash
 }
 
 function Get-DCUInstallerFile {
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
     $InstallerPath = 'C:\Temp\DellCommandUpdate'
-    $URL = Get-DCULatestURL
-    mkdir $InstallerPath -Force | Out-Null
-    Invoke-WebRequest -Uri $URL -UseBasicParsing -OutFile "$InstallerPath\Dell-Command-Update.exe" -UserAgent $UserAgent
+    $results = Get-DCULatestURL
+
+    if (-not (Test-Path "$InstallerPath\Dell-Command-Update.exe") -or (Get-FileHash -Path "$InstallerPath\Dell-Command-Update.exe" -Algorithm SHA256).Hash -ne $results[1]) {
+        mkdir $InstallerPath -Force | Out-Null
+        Invoke-WebRequest -Uri $results[0] -UseBasicParsing -OutFile "$InstallerPath\Dell-Command-Update.exe" -UserAgent $UserAgent
+    }
 
     return Get-ChildItem "$InstallerPath\Dell-Command-Update.exe" -ErrorAction SilentlyContinue
 }
