@@ -3,6 +3,6 @@ repos:
     hooks:
       - id: ente-script
         name: Copy ente script
-        entry: python3 .pre-commit/move_files.py
+        entry: python3 pre-commit/move_files.py
         language: python
         files: python/

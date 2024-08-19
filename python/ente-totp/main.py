@@ -15,6 +15,7 @@ def cli():
 @cli.command('import')
 @click.argument("file", type=click.Path(exists=True))
 def import_file(file):
+    """Import secrets from the given file and create a database."""
     secret_dict = defaultdict(list) # uses parameterless lambda to create a new list for each key
 
     for service_name, username, secret in parse_secrets(file):
@@ -29,6 +30,7 @@ def import_file(file):
     print("Database created.")
 
 def parse_secrets(file_path="secrets.txt"):
+    """Parse the secrets from the given file."""
     secrets_list = []
     
     with open(file_path, "r") as secrets_file:
@@ -50,6 +52,7 @@ def parse_secrets(file_path="secrets.txt"):
     return secrets_list
 
 def format_data(service_name, service_data, output_type):
+    """Format the data based on the output type."""
     json_data = []
     for username, secret in service_data:
         totp = pyotp.TOTP(secret)
@@ -85,6 +88,7 @@ def format_data(service_name, service_data, output_type):
 @click.option("-j","json_output", is_flag=True)
 @click.option("-a","alfred_output", is_flag=True)
 def generate_totp(secret_id, json_output, alfred_output):
+    """Generate TOTP for the given secret_id."""
     try:
         with open(DB_FILE, "r") as file:
             data = json.load(file)

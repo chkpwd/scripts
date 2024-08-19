@@ -7,7 +7,7 @@ from pathlib import Path
 
 if __name__ == "__main__":
     src_file = Path.home().joinpath(
-        "code", "scripts", "python", "ente-totp-genearator", "main.py"
+        "code", "scripts", "python", "ente-totp", "main.py"
     )
     dest_file = Path.home().joinpath(
         "code", "alfred-workflows", "ente-totp", "main.py"
