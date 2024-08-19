@@ -1,10 +1,10 @@
-from urllib.parse import urlparse, parse_qs, unquote
-from collections import defaultdict
-import pyotp
-import click
 import json
 import pathlib
+from collections import defaultdict
+from urllib.parse import parse_qs, unquote, urlparse
 
+import click
+import pyotp
 
 DB_FILE = pathlib.Path.home() /".local/share/ente-totp/db.json"
 
@@ -49,46 +49,75 @@ def parse_secrets(file_path="secrets.txt"):
     
     return secrets_list
 
+def format_data(service_name, service_data, output_type):
+    json_data = []
+    for username, secret in service_data:
+        totp = pyotp.TOTP(secret)
+        current_code = totp.now()
+        
+        if output_type == 'json':
+            json_data.append({
+                "name": username,
+                "totp": current_code
+            })
+        
+        elif output_type == 'alfred':
+            json_data.append({
+                "title": service_name,
+                "subtitle": current_code,
+                "arg": current_code,
+                "icon": {
+                    "path": "./icon.png"
+                }
+            })
+        
+        elif output_type == 'print':
+            print(f'\t{username}: {current_code}')
+
+    if output_type in ['json', 'alfred']:
+        results = {"items": json_data}
+        return json.dumps(results, indent=4)
+    
+    return None
+
 @cli.command('get')
 @click.argument('secret_id')
 @click.option("-j","json_output", is_flag=True)
-def generate_totp(secret_id, json_output):
-    with open(DB_FILE, "r") as file:
-        data = json.load(file)
-    totp_data = None
-    for service_name, service_data in data.items():
-        if secret_id.lower() == service_name.lower():
-            totp_data = service_name, service_data
-            break
+@click.option("-a","alfred_output", is_flag=True)
+def generate_totp(secret_id, json_output, alfred_output):
+    try:
+        with open(DB_FILE, "r") as file:
+            data = json.load(file)
+        
+        totp_data = None
+        for service_name, service_data in data.items():
+            if secret_id.lower() == service_name.lower():
+                totp_data = service_name, service_data
+                break
 
-    if totp_data:
-        service_name, service_data = totp_data
-        if not json_output:
-            print(service_name)
-            for username, secret in service_data:
-                totp = pyotp.TOTP(secret)
+        if totp_data:
+            service_name, service_data = totp_data
+            
+            # Determine the output type
+            if json_output:
+                output_type = 'json'
+            elif alfred_output:
+                output_type = 'alfred'
+            else:
+                output_type = 'print'
+            
+            output = format_data(service_name, service_data, output_type)
+            
+            if output:
+                print(output)
 
-                # Generate the current TOTP code
-                current_code = totp.now()
-
-                print(f'\t{username}: {current_code}')
         else:
-            json_data = []
-            for username, secret in service_data:
-                totp = pyotp.TOTP(secret)
+            # return an empty array in "items"
+            print(json.dumps({"items": []}, indent=4))
+    
+    except Exception as e:
+        print(json.dumps({"items": [], "error": str(e)}, indent=4))
 
-                # Generate the current TOTP code
-                current_code = totp.now()
-                json_data.append({
-                    "name": username,
-                    "totp": current_code
-                })
-
-            print(json.dumps(json_data))
-    else:
-        print("No matching service")
-        return
-   
 
 if __name__ == "__main__":
     cli()
